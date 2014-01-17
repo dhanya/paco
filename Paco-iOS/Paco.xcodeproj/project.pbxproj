@@ -210,6 +210,7 @@
 		C5C4F5F817B17520009E9F18 /* JCNotificationCenter.m in Sources */ = {isa = PBXBuildFile; fileRef = C5C4F5E717B17520009E9F18 /* JCNotificationCenter.m */; };
 		E43DA212185ADDC9007F04F9 /* PacoInfoView.m in Sources */ = {isa = PBXBuildFile; fileRef = E43DA211185ADDC9007F04F9 /* PacoInfoView.m */; };
 		E43DA21D185ADDD2007F04F9 /* PacoWebViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = E43DA21C185ADDD2007F04F9 /* PacoWebViewController.m */; };
+		E44B3092188934A600E502BB /* PacoStepperView.m in Sources */ = {isa = PBXBuildFile; fileRef = E44B3091188934A600E502BB /* PacoStepperView.m */; };
 		E4D5DE861837DE9A00E5446A /* MessageUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E4D5DE851837DE9900E5446A /* MessageUI.framework */; };
 		E4E8F352183B21500022613A /* PacoContactUsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = E4E8F351183B21500022613A /* PacoContactUsViewController.m */; };
 /* End PBXBuildFile section */
@@ -575,6 +576,8 @@
 		E43DA211185ADDC9007F04F9 /* PacoInfoView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PacoInfoView.m; sourceTree = "<group>"; };
 		E43DA21B185ADDD2007F04F9 /* PacoWebViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PacoWebViewController.h; sourceTree = "<group>"; };
 		E43DA21C185ADDD2007F04F9 /* PacoWebViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PacoWebViewController.m; sourceTree = "<group>"; };
+		E44B3090188934A600E502BB /* PacoStepperView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PacoStepperView.h; sourceTree = "<group>"; };
+		E44B3091188934A600E502BB /* PacoStepperView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PacoStepperView.m; sourceTree = "<group>"; };
 		E4D5DE851837DE9900E5446A /* MessageUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MessageUI.framework; path = System/Library/Frameworks/MessageUI.framework; sourceTree = SDKROOT; };
 		E4E8F350183B21500022613A /* PacoContactUsViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PacoContactUsViewController.h; sourceTree = "<group>"; };
 		E4E8F351183B21500022613A /* PacoContactUsViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PacoContactUsViewController.m; sourceTree = "<group>"; };
@@ -1022,6 +1025,8 @@
 				368C2EE0178DFFBA00546918 /* PacoAlertView.m */,
 				369EC7FE18467C2B00A1EFE4 /* PacoLoadingView.h */,
 				369EC7FF18467C2B00A1EFE4 /* PacoLoadingView.m */,
+				E44B3090188934A600E502BB /* PacoStepperView.h */,
+				E44B3091188934A600E502BB /* PacoStepperView.m */,
 			);
 			path = UIComponents;
 			sourceTree = "<group>";
@@ -1596,6 +1601,7 @@
 				36B8EC2F17568E33004CF035 /* GTMOAuth2Authentication.m in Sources */,
 				36B8EC3017568E33004CF035 /* GTMOAuth2SignIn.m in Sources */,
 				36B8EC3117568E33004CF035 /* GTMOAuth2ViewControllerTouch.m in Sources */,
+				E44B3092188934A600E502BB /* PacoStepperView.m in Sources */,
 				36B8EC3317568E33004CF035 /* GoogleAppEngineAuth.m in Sources */,
 				36B8EC3417568E33004CF035 /* GoogleClientLogin.m in Sources */,
 				36946B05177A37CF005E0C04 /* PacoExperimentFeedback.m in Sources */,
