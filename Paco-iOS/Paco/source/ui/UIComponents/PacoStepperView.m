@@ -128,7 +128,7 @@
   [self.valueLabel resignFirstResponder];
 }
 
-#pragma mark --- UITextFieldDelegate
+#pragma mark--- UITextFieldDelegate
 
 - (void)textFieldDidChange:(UITextField *)textField {
   self.value = [NSNumber numberWithInt:textField.text.intValue];
