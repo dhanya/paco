@@ -62,7 +62,7 @@ NSString * const kStrPacoSliderChanged = @"kPacoNotificationSliderChanged";
 
 - (void)setFormat:(NSString *)format {
   _format = format;
-  self.valueLabel.text = [NSString stringWithFormat:format, (int)self.slider.value];
+  self.valueLabel.text = [NSString localizedStringWithFormat:format, (int)self.slider.value];
   [self.valueLabel sizeToFit];
   [self setNeedsLayout];
 }
@@ -71,7 +71,7 @@ NSString * const kStrPacoSliderChanged = @"kPacoNotificationSliderChanged";
   _value = value;
   self.slider.value = [_value intValue];
   if (value && _format) {
-    self.valueLabel.text = [NSString stringWithFormat:_format, [value intValue]];
+    self.valueLabel.text = [NSString localizedStringWithFormat:_format, [value intValue]];
   }
 
   [self.valueLabel sizeToFit];
