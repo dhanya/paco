@@ -23,6 +23,7 @@ import java.util.Map;
 import com.google.gwt.user.client.rpc.RemoteService;
 import com.google.gwt.user.client.rpc.RemoteServiceRelativePath;
 import com.google.paco.shared.model.ExperimentDAO;
+import com.google.paco.shared.model.ExperimentQueryResult;
 
 /*
  * * The client side stub for the RPC service.
@@ -36,19 +37,19 @@ public interface PacoService extends RemoteService {
   void saveEvent(String who, String scheduledTime, String responseTime, String experimentId,
                  Map<String, String> kvPairs, Integer experimentVersion, boolean shared);
 
-  void saveExperiment(ExperimentDAO experiment);
+  void saveExperiment(ExperimentDAO experiment, String timeZone);
 
   Boolean deleteExperiment(ExperimentDAO experiment);
 
   boolean joinExperiment(Long id);
 
-  List<ExperimentDAO> getAllJoinableExperiments(String tz);
+  ExperimentQueryResult getAllJoinableExperiments(String tz, Integer limit, String cursor);
 
-  List<ExperimentDAO> getMyJoinableExperiments(String tz);
+  ExperimentQueryResult getMyJoinableExperiments(String tz, Integer limit, String cursor);
 
-  List<ExperimentDAO> getUsersJoinedExperiments();
+  ExperimentQueryResult getUsersJoinedExperiments(Integer limit, String cursor);
 
-  List<ExperimentDAO> getUsersAdministeredExperiments();
+  ExperimentQueryResult getUsersAdministeredExperiments(Integer limit, String cursor);
 
   ExperimentStatsDAO statsForExperiment(Long experimentId, boolean justUser);
 

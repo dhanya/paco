@@ -16,7 +16,7 @@
 #import "PacoRunningExperimentsViewController.h"
 
 #import "PacoClient.h"
-#import "PacoColor.h"
+#import "UIColor+Paco.h"
 #import "PacoFont.h"
 #import "PacoLoadingTableCell.h"
 #import "PacoModel.h"
@@ -67,7 +67,7 @@
   PacoTableView* table = [[PacoTableView alloc] init];
   table.delegate = self;
   [table registerClass:[PacoSubtitleTableCell class] forStringKey:nil dataClass:[PacoExperiment class]];
-  table.backgroundColor = [PacoColor pacoBackgroundWhite];
+  table.backgroundColor = [UIColor pacoBackgroundWhite];
   self.view = table;
   [[NSNotificationCenter defaultCenter] addObserver:self
                                            selector:@selector(experimentsUpdate:)
@@ -107,7 +107,7 @@
   //send UI update to main thread to avoid potential crash
   dispatch_async(dispatch_get_main_queue(), ^{
     PacoTableView* tableView = (PacoTableView*)self.view;
-    tableView.data = [NSArray array];
+    tableView.data = @[];
     [PacoAlertView showGeneralErrorAlert];
   });
 }
@@ -195,10 +195,10 @@
             forReuseId:(NSString *)reuseId {
   if ([rowData isKindOfClass:[PacoExperiment class]]) {
     PacoExperiment *experiment = rowData;
-    cell.backgroundColor = [PacoColor pacoBackgroundWhite];
+    cell.backgroundColor = [UIColor pacoBackgroundWhite];
     cell.imageView.image = [UIImage imageNamed:@"calculator.png"];
     cell.textLabel.font = [PacoFont pacoTableCellFont];
-    cell.textLabel.textColor = [PacoColor pacoBlue];
+    cell.textLabel.textColor = [UIColor pacoBlue];
     cell.textLabel.text = experiment.definition.title;
     if ([experiment isScheduledExperiment] &&
         [[PacoClient sharedInstance].scheduler hasActiveNotificationForExperiment:experiment.instanceId]) {
@@ -211,10 +211,10 @@
   } else {
     assert([rowData isKindOfClass:[NSArray class]]);
     NSArray *keyAndValue = rowData;
-    NSString *key = [keyAndValue objectAtIndex:0];
+    NSString *key = keyAndValue[0];
     assert([key isEqualToString:@"LOADING"]);
     PacoLoadingTableCell *loading = (PacoLoadingTableCell *)cell;
-    NSString *loadingText = [keyAndValue objectAtIndex:1];
+    NSString *loadingText = keyAndValue[1];
     loading.loadingText = loadingText;
   }
 }

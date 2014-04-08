@@ -434,4 +434,14 @@ public interface MyConstants extends Constants {
 
   @DefaultStringValue("Enter html and javascript for custom rendering of experiment")
   String customRenderingInstructions();
+
+  @DefaultStringValue("There are no experiments.")
+  String noExperimentsReturned();
+
+  @DefaultStringValue("Show Feedback (leave checked unless your custom rendering code handles feedback presentation)")
+  String showFeedback();
+
+  @DefaultStringValue("This feature is not currently not compatible with iOS")
+  String iOSIncompatible();
+
 }

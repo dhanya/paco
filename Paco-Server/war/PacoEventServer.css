@@ -2,9 +2,11 @@
 
 
 /** Example rules used by the template application (remove for your app) */
+
+
 table, tbody, tr, td {
   text-align: left;
-  margin: 3;
+  margin: 2;
 }
 
 
@@ -122,7 +124,7 @@ table, tbody, tr, td {
 
 
 .paco-HTML {
-. padding: 2px;
+  padding: 2px;
   font-weight: bold;
   color: #333333;
 }

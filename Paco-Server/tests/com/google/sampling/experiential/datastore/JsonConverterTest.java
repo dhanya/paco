@@ -11,6 +11,7 @@ import com.google.paco.shared.model.SignalingMechanismDAO;
 public class JsonConverterTest extends TestCase {
 
   private List<ExperimentDAO> experimentList;
+  private String pacoProtocolOld = null;
 
   protected void setUp() throws Exception {
     super.setUp();
@@ -25,12 +26,12 @@ public class JsonConverterTest extends TestCase {
     experimentList.add(new ExperimentDAO(new Long(1), "1title", "1descr", "1consent", "1email",
                                          signalingMechanisms, true, false, null , null, null,
                                          null, null, false, publishedAdmins, publishedAdmins,
-                                         false, false, 1, false, (String)null, true));
+                                         false, false, 1, false, (String)null, true, true));
   }
 
   public void testShortJsonifyShortening() throws Exception {
-    String longJson = JsonConverter.jsonify(experimentList);
-    String shortJson = JsonConverter.shortJsonify(experimentList);
+    String longJson = JsonConverter.jsonify(experimentList, null, null, pacoProtocolOld );
+    String shortJson = JsonConverter.shortJsonify(experimentList, null, null, pacoProtocolOld);
     assertTrue(shortJson.length() <= longJson.length());
   }
 

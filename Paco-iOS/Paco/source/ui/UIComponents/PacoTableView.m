@@ -17,7 +17,7 @@
 
 #import <objc/runtime.h>
 
-#import "PacoColor.h"
+#import "UIColor+Paco.h"
 #import "PacoFont.h"
 #import "PacoLoadingTableCell.h"
 #import "PacoTableCell.h"
@@ -57,7 +57,7 @@
     _tableView = [[UITableView alloc] initWithFrame:CGRectZero style:UITableViewStylePlain];
     _tableView.dataSource = self;
     _tableView.delegate = self;
-    _tableView.backgroundColor = [PacoColor pacoBackgroundWhite];
+    _tableView.backgroundColor = [UIColor pacoBackgroundWhite];
     _tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
     UITapGestureRecognizer* tapRecognizer =
         [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(didTapOnTableView:)];
@@ -119,7 +119,7 @@
 - (NSArray *)boxInputs:(NSArray *)inputs withKey:(NSString *)key {
   NSMutableArray *boxed = [NSMutableArray array];
   for (id input in inputs) {
-    NSArray *boxedInput = [NSArray arrayWithObjects:key, input, nil];
+    NSArray *boxedInput = @[key, input];
     [boxed addObject:boxedInput];
   }
   return boxed;
@@ -156,12 +156,12 @@
   if ([array count] != 2) {
     return NO;
   }
-  id key = [array objectAtIndex:0];
-  id data = [array objectAtIndex:1];
+  id key = array[0];
+  id data = array[1];
   if (![key isKindOfClass:[NSString class]]) {
     return NO;
   }
-  Class dataClass = [_stringKeyToDataClass objectForKey:key];
+  Class dataClass = _stringKeyToDataClass[key];
   if (!dataClass) {
     return NO;
   }
@@ -173,9 +173,7 @@
 
 - (void)setLoadingSpinnerEnabledWithLoadingText:(NSString *)loadingText {
   NSArray *loadingTableData =
-      [NSArray arrayWithObjects:
-          [NSArray arrayWithObjects:@"LOADING", loadingText, nil],
-          nil];
+      @[@[@"LOADING", loadingText]];
   [self setData:loadingTableData];
 }
 
@@ -198,7 +196,7 @@
 
     // Keep the structure consistent whether 1 section or N sections.
     if (!allArrays) {
-      _data = [[NSArray alloc] initWithObjects:data, nil];
+      _data = @[data];
     } else {
       _data = data;
     }
@@ -211,13 +209,13 @@
   NSString *reuseId = [self keyForDataClass:dataClass stringKey:stringKey];
   [_tableView registerClass:cellClass forCellReuseIdentifier:reuseId];
   if (stringKey) {
-    [_stringKeyToDataClass setObject:dataClass forKey:stringKey];
+    _stringKeyToDataClass[stringKey] = dataClass;
   }
   [self setMappingForDataClass:dataClass toCellClass:cellClass withStringKey:stringKey];
 }
 
 - (void)layoutSubviews {
-  self.backgroundColor = [PacoColor pacoBackgroundWhite];
+  self.backgroundColor = [UIColor pacoBackgroundWhite];
   CGRect headerFrame = self.header ? self.header.frame : CGRectZero;
   CGRect footerFrame = self.footer ? self.footer.frame : CGRectZero;
   CGFloat yStart = 0;
@@ -282,7 +280,7 @@
 
 - (PacoTableMapping *)mappingForDataClass:(Class)dataClass stringKey:(NSString *)stringKey {
   NSString *key = [self keyForDataClass:dataClass stringKey:stringKey];
-  PacoTableMapping *mapping =  [_mappings objectForKey:key];
+  PacoTableMapping *mapping =  _mappings[key];
   if (mapping == nil) {
     NSLog(@"error");
   }
@@ -297,7 +295,7 @@
   mapping.dataClass = dataClass;
   mapping.cellClass = cellClass;
   mapping.stringKey = stringKey;
-  [_mappings setObject:mapping forKey:key];
+  _mappings[key] = mapping;
 }
 
 
@@ -305,13 +303,13 @@
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
   assert(section < self.data.count);
-  NSArray *sectionArray = [_data objectAtIndex:section];
+  NSArray *sectionArray = _data[section];
   return sectionArray.count;
 }
 
 - (id)rowDataForIndexPath:(NSIndexPath *)indexPath {
-  NSArray *sectionData = [_data objectAtIndex:indexPath.section];
-  id rowData = [sectionData objectAtIndex:indexPath.row];
+  NSArray *sectionData = _data[indexPath.section];
+  id rowData = sectionData[indexPath.row];
   return rowData;
 }
 
@@ -321,8 +319,8 @@
   id dataObj = nil;
   if (isKeyed) {
     NSArray *keyPair = rowData;
-    stringKey = [keyPair objectAtIndex:0];
-    dataObj = [keyPair objectAtIndex:1];
+    stringKey = keyPair[0];
+    dataObj = keyPair[1];
   } else {
     dataObj = rowData;
   }
@@ -351,7 +349,7 @@
     pacoCell.tableDelegate = self.delegate;
     pacoCell.rowData = rowData;
     pacoCell.reuseId = reuseId;
-    pacoCell.backgroundColor = [PacoColor pacoBackgroundWhite];
+    pacoCell.backgroundColor = [UIColor pacoBackgroundWhite];
     pacoCell.textLabel.font = [PacoFont pacoTableCellFont];
     pacoCell.detailTextLabel.font = [PacoFont pacoTableCellDetailFont];
   }

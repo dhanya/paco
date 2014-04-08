@@ -16,7 +16,7 @@
 #import "PacoPublicExperimentController.h"
 #import "PacoPublicDefinitionLoader.h"
 #import "PacoEnumerator.h"
-#import "PacoColor.h"
+#import "UIColor+Paco.h"
 #import "PacoExperimentDetailsViewController.h"
 #import "PacoClient.h"
 #import "PacoService.h"
@@ -116,7 +116,7 @@
 
 
 - (int)rowOfLastCell {
-  return [self.definitions count];
+  return (int)[self.definitions count];
 }
 
 -(void)updateLoadMoreCell:(UITableViewCell*)loadMoreCell{
@@ -132,7 +132,7 @@
   } else {
     if ([self.enumerator hasMoreItems]) {
       loadMoreCell.userInteractionEnabled = YES;
-      loadMoreCell.textLabel.textColor = [PacoColor pacoSystemButtonBlue];
+      loadMoreCell.textLabel.textColor = [UIColor pacoSystemButtonBlue];
       loadMoreCell.textLabel.text = @"Load next 20 experiments";
     } else {
       loadMoreCell.userInteractionEnabled = NO;
@@ -177,14 +177,14 @@
                                   reuseIdentifier:@"experimentCell"];
 
     cell.textLabel.font = [PacoFont pacoTableCellFont];
-    cell.textLabel.textColor = [PacoColor pacoSystemButtonBlue];
+    cell.textLabel.textColor = [UIColor pacoSystemButtonBlue];
     cell.detailTextLabel.font = [PacoFont pacoTableCellDetailFont];
     cell.detailTextLabel.textColor = [UIColor darkGrayColor];
   }
-  NSDictionary* dict = [self.definitions objectAtIndex:indexPath.row];
+  NSDictionary* dict = (self.definitions)[indexPath.row];
   NSAssert([dict isKindOfClass:[NSDictionary class]], @"definition should be a dictionary");
-  cell.textLabel.text = [NSString stringWithFormat:@"%d. %@", indexPath.row + 1, [dict objectForKey:@"title"]];
-  cell.detailTextLabel.text = [dict objectForKey:@"creator"];
+  cell.textLabel.text = [NSString stringWithFormat:@"%ld. %@", (long)(indexPath.row + 1), dict[@"title"]];
+  cell.detailTextLabel.text = dict[@"creator"];
   return cell;
 }
 
@@ -197,10 +197,10 @@
   if (indexPath.row == [self rowOfLastCell]) {
     [self loadNextPage];
   } else {
-    NSDictionary* dict = [self.definitions objectAtIndex:indexPath.row];
+    NSDictionary* dict = (self.definitions)[indexPath.row];
     NSAssert([dict isKindOfClass:[NSDictionary class]], @"definition should be a dictionary");
     NSString* definitionId = [NSString stringWithFormat:@"%lld",
-                              [[dict objectForKey:@"id"] longLongValue]];
+                              [dict[@"id"] longLongValue]];
     
     [[PacoClient sharedInstance].service
         loadFullDefinitionWithID:definitionId

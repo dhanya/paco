@@ -22,6 +22,7 @@ import java.util.Map;
 
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.paco.shared.model.ExperimentDAO;
+import com.google.paco.shared.model.ExperimentQueryResult;
 
 /*
  * * The async counterpart of <code>MeetingService</code>.
@@ -40,6 +41,7 @@ public interface PacoServiceAsync {
       boolean shared, AsyncCallback<Void> asyncCallback);
 
   /**
+   * @param timeZone
    * @param title
    * @param description
    * @param kvPairs
@@ -48,15 +50,15 @@ public interface PacoServiceAsync {
    * @param feedbackType
    * @param asyncCallback
    */
-  void saveExperiment(ExperimentDAO experiment, AsyncCallback<Void> asyncCallback);
+  void saveExperiment(ExperimentDAO experiment, String timeZone, AsyncCallback<Void> asyncCallback);
 
-  void getAllJoinableExperiments(String tz, AsyncCallback<List<ExperimentDAO>> callback);
+  void getAllJoinableExperiments(String tz, Integer limit, String cursor, AsyncCallback<ExperimentQueryResult> callback);
 
-  void getMyJoinableExperiments(String tz, AsyncCallback<List<ExperimentDAO>> callback);
+  void getMyJoinableExperiments(String tz, Integer limit, String cursor, AsyncCallback<ExperimentQueryResult> callback);
 
-  void getUsersJoinedExperiments(AsyncCallback<List<ExperimentDAO>> callback);
+  void getUsersJoinedExperiments(Integer limit, String cursor, AsyncCallback<ExperimentQueryResult> callback);
 
-  void getUsersAdministeredExperiments(AsyncCallback<List<ExperimentDAO>> callback);
+  void getUsersAdministeredExperiments(Integer limit, String cursor, AsyncCallback<ExperimentQueryResult> callback);
 
   void joinExperiment(Long id, AsyncCallback<Boolean> asyncCallback);
 

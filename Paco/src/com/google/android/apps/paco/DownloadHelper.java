@@ -2,6 +2,8 @@ package com.google.android.apps.paco;
 
 import java.util.List;
 
+import org.joda.time.DateTime;
+
 import android.content.Context;
 import android.util.Log;
 
@@ -23,16 +25,20 @@ public class DownloadHelper {
   private UserPreferences userPrefs;
   private String contentAsString;
   private Request request;
+  private String cursor;
+  private Integer limit;
   public static final String EXECUTION_ERROR = "execution_error";
   public static final String SERVER_COMMUNICATION_ERROR = "server_communication_error";
   public static final String CONTENT_ERROR = "content_error";
   public static final String RETRIEVAL_ERROR = "retrieval_error";
   public static final String SUCCESS = "success";
 
-  public DownloadHelper(Context context, UserPreferences userPrefs) {
+  public DownloadHelper(Context context, UserPreferences userPrefs, Integer limit, String cursor) {
     this.context = context;
     this.manager = new UrlContentManager(context);
     this.userPrefs = userPrefs;
+    this.cursor = cursor;
+    this.limit = limit;
   }
 
   public String downloadMyExperiments() {
@@ -77,7 +83,7 @@ public class DownloadHelper {
 
   // Visible for testing
   public String makeAvailableExperimentsRequest() throws Exception {
-    return makeExperimentRequest("short");
+    return makeExperimentRequest("public");
   }
 
   public String downloadRunningExperiments(List<Long> experimentIds) {
@@ -106,10 +112,18 @@ public class DownloadHelper {
   private String makeExperimentRequest(String flag) throws Exception {
     String serverAddress = userPrefs.getServerAddress();
     String path = "/experiments?" + flag;
+    if (cursor != null) {
+      path += "&cursor="+cursor;
+    }
+    if (limit != null) {
+      path += "&limit=" + limit;
+    }
+    path += "&tz=" + new DateTime().getZone().getID();
     request = manager.createRequest();
     Response response = request.setUrl(ServerAddressBuilder.createServerUrl(serverAddress, path))
         .addHeader("http.useragent", "Android")
-        .addHeader("paco.version", AndroidUtils.getAppVersion(context)).execute();
+        .addHeader("paco.version", AndroidUtils.getAppVersion(context))
+        .addHeader("pacoProtocol", "3.0").execute();
     return response.getContentAsString();
   }
 
@@ -125,5 +139,6 @@ public class DownloadHelper {
   public Request getRequest() {
     return request;
   }
+
 
 }

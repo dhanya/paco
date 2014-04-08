@@ -5,26 +5,34 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 
 import javax.jdo.JDOHelper;
 import javax.jdo.PersistenceManager;
+import javax.jdo.Query;
 import javax.jdo.Transaction;
 
+import org.datanucleus.store.appengine.query.JDOCursorHelper;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
+import com.google.appengine.api.datastore.Cursor;
+import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.users.User;
 import com.google.appengine.api.users.UserServiceFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.paco.shared.model.ExperimentDAO;
+import com.google.paco.shared.model.ExperimentQueryResult;
 import com.google.paco.shared.model.SignalScheduleDAO;
 import com.google.paco.shared.model.SignalingMechanismDAO;
 import com.google.paco.shared.model.TriggerDAO;
 import com.google.sampling.experiential.datastore.ExperimentVersionEntity;
+import com.google.sampling.experiential.datastore.PublicExperimentList;
 import com.google.sampling.experiential.model.Experiment;
 import com.google.sampling.experiential.model.ExperimentReference;
 import com.google.sampling.experiential.model.Feedback;
@@ -33,6 +41,10 @@ import com.google.sampling.experiential.model.SignalSchedule;
 import com.google.sampling.experiential.model.Trigger;
 
 public class ExperimentRetriever {
+
+  private static final int DEFAULT_LIMIT_SIZE = 50;
+
+  private static final int MAX_LIMIT_SIZE = 80;
 
   private static final Logger log = Logger.getLogger(ExperimentRetriever.class.getName());
 
@@ -70,11 +82,11 @@ public class ExperimentRetriever {
         } else if (experiments.size() > 1) {
           String message = "There are multiple experiments for this id: " + longId;
           log.info(message);
-          throw new IllegalArgumentException(message);
+          return null;
         } else if (experiments.size() < 1) {
           String message = "There are no experiments for this id: " + longId;
           log.info(message);
-          throw new IllegalArgumentException(message);
+          return null;
         }
       }
     } finally {
@@ -106,6 +118,36 @@ public class ExperimentRetriever {
     }
     return resultingExperiments;
   }
+
+  public ExperimentQueryResult getUsersAdministeredExperiments(String email, DateTimeZone dateTimeZone, Integer limit, String cursor) {
+    List<ExperimentDAO> experimentDAOs = Lists.newArrayList();
+
+    PersistenceManager pm = null;
+    Transaction tx = null;
+    try {
+      pm = PMF.get().getPersistenceManager();
+      tx = pm.currentTransaction();
+      tx.begin();
+      Query q = pm.newQuery(Experiment.class);
+      q.setFilter("admins == whoParam");
+      q.declareParameters("String whoParam");
+      List<Experiment> experiments = (List<Experiment>) q.execute(email.toLowerCase());
+      if (experiments != null) {
+        for (Experiment experiment : experiments) {
+          experimentDAOs.add(DAOConverter.createDAO(experiment));
+        }
+      }
+      tx.commit();
+    } finally {
+      if (tx.isActive()) {
+        tx.rollback();
+      }
+      if (pm != null) {
+        pm.close();
+      }
+    }
+    return new ExperimentQueryResult(cursor, experimentDAOs);
+}
 
   // load related piecs before we close the Persistence Manager.
   // TODO eager load the experiment's object graph
@@ -217,7 +259,7 @@ public class ExperimentRetriever {
     });
   }
 
-  public boolean saveExperiment(ExperimentDAO experimentDAO, User loggedInUser) {
+  public boolean saveExperiment(ExperimentDAO experimentDAO, User loggedInUser, String userTz) {
     String loggedInUserEmail = loggedInUser.getEmail().toLowerCase();
     PersistenceManager pm = PMF.get().getPersistenceManager();
     Experiment experiment = null;
@@ -286,7 +328,13 @@ public class ExperimentRetriever {
 
     if (committed) {
       ExperimentVersionEntity.saveExperimentAsEntity(experiment);
-      ExperimentCacheHelper.getInstance().clearCache();
+      PublicExperimentList.updatePublicExperimentsList(experiment, TimeUtil.getNowInUserTimezone(userTz));
+
+//      ExperimentCacheHelper.getInstance().clearCache(); // TODO do we need this
+//      if (experiment.getPublished() && experiment.getPublishedUsers().size() == 0) {
+//        ExperimentDAO newExperimentDAO = DAOConverter.createDAO(experiment);
+//        ExperimentCacheHelper.getInstance().addPublicExperiment(newExperimentDAO);
+//      }
       addAnyNewPeopleToTheWhitelist(experiment);
     }
     return true;
@@ -351,6 +399,7 @@ public class ExperimentRetriever {
        }
        pm.deletePersistent(experiment);
        ExperimentCacheHelper.getInstance().clearCache();
+       PublicExperimentList.deletePublicExperiment(experiment);
        return Boolean.TRUE;
     } finally {
       if (pm != null) {
@@ -359,15 +408,25 @@ public class ExperimentRetriever {
     }
   }
 
-  public List<ExperimentDAO> getAllJoinableExperiments(String email, DateTimeZone dateTimeZone) {
+public ExperimentQueryResult getAllJoinableExperiments(String email, DateTimeZone dateTimeZone, Integer limit, String cursorString) {
     PersistenceManager pm = null;
     try {
       pm = PMF.get().getPersistenceManager();
       javax.jdo.Query q = pm.newQuery(Experiment.class);
+      if (cursorString != null) {
+        Cursor cursor = Cursor.fromWebSafeString(cursorString);
+        Map<String, Object> extensionMap = Maps.newHashMap();
+        extensionMap.put(JDOCursorHelper.CURSOR_EXTENSION, cursor);
+        q.setExtensions(extensionMap);
+      }
+      q.setRange(0, limit != null ? Math.max(MAX_LIMIT_SIZE, limit) : DEFAULT_LIMIT_SIZE);
+
       List<Experiment> experiments = (List<Experiment>) q.execute();
+      Cursor newCursor = JDOCursorHelper.getCursor(experiments);
+      String newCursorString = newCursor.toWebSafeString();
       List<ExperimentDAO> experimentDAOs = DAOConverter.createDAOsFor(experiments);
       markEndOfDayExperiments(pm, experimentDAOs);
-      return filterSortAndSanitizeExperimentsUnavailableToUser(experimentDAOs, email, dateTimeZone);
+      return new ExperimentQueryResult(newCursorString, filterSortAndSanitizeExperimentsUnavailableToUser(experimentDAOs, email, dateTimeZone));
     } finally {
       if (pm != null) {
         pm.close();
@@ -414,7 +473,7 @@ public class ExperimentRetriever {
     //return Lists.newArrayList();
   }
 
-  public List<ExperimentDAO> getMyJoinableExperiments(String email, DateTimeZone dateTimeZone) {
+  public ExperimentQueryResult getMyJoinableExperiments(String email, DateTimeZone dateTimeZone, Integer limit, String cursor) {
     PersistenceManager pm = null;
     try {
       pm = PMF.get().getPersistenceManager();
@@ -430,7 +489,8 @@ public class ExperimentRetriever {
 //      markEndOfDayExperiments(pm, experiments);
       removeSensitiveFields(experimentDAOs);
       sortExperiments(experimentDAOs);
-      return filterFinishedAndDeletedExperiments(dateTimeZone, experimentDAOs);
+      List<ExperimentDAO> finalExperiments = filterFinishedAndDeletedExperiments(dateTimeZone, experimentDAOs);
+      return new ExperimentQueryResult(cursor, finalExperiments);
     } finally {
       if (pm != null) {
         pm.close();
@@ -456,6 +516,85 @@ public class ExperimentRetriever {
     @SuppressWarnings("unchecked")
     List<Experiment> experiments = (List<Experiment>)jdoQuery.getQuery().execute(jdoQuery.getParameters());
     return experiments;
+  }
+
+  public ExperimentQueryResult getExperimentsPublishedPublicly(DateTimeZone dateTimeZone, Integer limit, String cursorString) {
+    List<Long> publicExperimentIds = PublicExperimentList.getPublicExperiments(dateTimeZone.getID());
+
+//    Iterable<String> publicExperimentIdStrings = Longs.stringConverter().reverse().convertAll(publicExperimentIds);
+//    String idsInQuery = Joiner.on(",").join(publicExperimentIdStrings);
+    if (publicExperimentIds.isEmpty()) {
+      return new ExperimentQueryResult(null, new ArrayList<ExperimentDAO>());
+    }
+
+
+    PersistenceManager pm = null;
+    try {
+      pm = PMF.get().getPersistenceManager();
+
+      List<Key> keysHere = Lists.newArrayList();
+      List objIds = Lists.newArrayList();
+      for (Long id : publicExperimentIds) {
+//        Key key = KeyFactory.createKey(Experiment.class.getSimpleName(), id);
+//        keysHere.add(key);
+        objIds.add(pm.newObjectIdInstance(Experiment.class, id));
+      }
+
+
+      List<Experiment> experiments = (List<Experiment>) pm.getObjectsById(objIds);
+//      Query newQuery = pm.newQuery("select from " + Experiment.class.getName() + " where :keys.contains(id)");
+//      newQuery.setOrdering("title asc");
+//
+//      if (cursorString != null) {
+//        Cursor cursor = Cursor.fromWebSafeString(cursorString);
+//        Map<String, Object> extensionMap = Maps.newHashMap();
+//        extensionMap.put(JDOCursorHelper.CURSOR_EXTENSION, cursor);
+//        newQuery.setExtensions(extensionMap);
+//      }
+//      newQuery.setRange(0, limit != null ? Math.min(MAX_LIMIT_SIZE, limit) : DEFAULT_LIMIT_SIZE);
+//
+//      log.severe("Query = " + newQuery.toString());
+//      log.severe("Number of public experiment Ids = " + publicExperimentIds.size());
+//      @SuppressWarnings("unchecked")
+//      List<Experiment> experiments = (List<Experiment>) newQuery.execute(publicExperimentIds);
+
+      Cursor newCursor = JDOCursorHelper.getCursor(experiments);
+      String newCursorString = null;
+      if (newCursor != null) {
+        newCursorString = newCursor.toWebSafeString();
+      }
+
+      List<ExperimentDAO> experimentDAOs = DAOConverter.createDAOsFor(experiments);
+      markEndOfDayExperiments(pm, experimentDAOs);
+      removeSensitiveFields(experimentDAOs);
+      sortExperiments(experimentDAOs);
+      // fakey pagination since we can load everything quickly in memory by id at the moment
+      int startIndex = 0;
+      if (cursorString != null) {
+        try {
+          startIndex = Integer.parseInt(cursorString);
+        } catch (NumberFormatException e) {
+          // no cursor for you...
+        }
+      }
+
+      if (limit != null) {
+        int endIndex = Math.min(startIndex + limit, experimentDAOs.size());
+        if (endIndex < experimentDAOs.size()) {
+          newCursorString = new Integer(endIndex).toString();
+        } else {
+          newCursorString = null;
+        }
+        experimentDAOs = experimentDAOs.subList(startIndex, endIndex);
+
+      }
+      //List<ExperimentDAO> results = filterFinishedAndDeletedExperiments(dateTimeZone, experimentDAOs);
+      return new ExperimentQueryResult(newCursorString, experimentDAOs);
+    } finally {
+      if (pm != null) {
+        pm.close();
+      }
+    }
   }
 
   private List<ExperimentDAO> filterFinishedAndDeletedExperiments(DateTimeZone dateTimeZone, List<ExperimentDAO> experiments) {

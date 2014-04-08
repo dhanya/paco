@@ -19,8 +19,11 @@ package com.google.android.apps.paco;
 
 import java.io.IOException;
 import java.nio.charset.UnsupportedCharsetException;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
@@ -50,6 +53,8 @@ import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.pacoapp.paco.R;
 
 
@@ -61,6 +66,7 @@ public class FindExperimentsActivity extends FragmentActivity {
   static final int REFRESHING_EXPERIMENTS_DIALOG_ID = 1001;
   static final int JOIN_REQUEST_CODE = 1;
   static final int JOINED_EXPERIMENT = 1;
+  static final Integer DOWNLOAD_LIMIT = 20;
 
   private ExperimentProviderUtil experimentProviderUtil;
   private ListView list;
@@ -68,9 +74,12 @@ public class FindExperimentsActivity extends FragmentActivity {
   private ViewGroup mainLayout;
   public UserPreferences userPrefs;
   protected AvailableExperimentsListAdapter adapter;
-  private List<Experiment> experiments;
+  private List<Experiment> experiments = Lists.newArrayList();
   private ProgressDialogFragment newFragment;
   private ProgressBar progressBar;
+  private String experimentCursor;
+  private boolean loadedAllExperiments;
+  private Button refreshButton;
 
   private static DownloadShortExperimentsTask experimentDownloadTask;
 
@@ -91,7 +100,7 @@ public class FindExperimentsActivity extends FragmentActivity {
 
     experimentProviderUtil = new ExperimentProviderUtil(this);
 
-    Button refreshButton = (Button) findViewById(R.id.RefreshExperimentsButton2);
+    refreshButton = (Button) findViewById(R.id.RefreshExperimentsButton2);
     refreshButton.setVisibility(View.VISIBLE);
 
     refreshButton.setOnClickListener(new OnClickListener() {
@@ -217,7 +226,7 @@ public class FindExperimentsActivity extends FragmentActivity {
 
     };
     progressBar.setVisibility(View.VISIBLE);
-    experimentDownloadTask = new DownloadShortExperimentsTask(this, listener, userPrefs);
+    experimentDownloadTask = new DownloadShortExperimentsTask(this, listener, userPrefs, DOWNLOAD_LIMIT, experimentCursor);
     experimentDownloadTask.execute();
   }
 
@@ -238,12 +247,65 @@ public class FindExperimentsActivity extends FragmentActivity {
 
   // Visible for testing
   public void updateDownloadedExperiments(String contentAsString) {
-    saveDownloadedExperiments(contentAsString);
-    reloadAdapter();
+    // saveDownloadedExperiments(contentAsString);
+    try {
+      Map<String, Object> results = ExperimentProviderUtil.fromEntitiesJson(contentAsString);
+      String newExperimentCursor = (String) results.get("cursor");
+      List<Experiment> newExperiments = (List<Experiment>) results.get("results");
+
+      if (experimentCursor == null) { // we have either not loaded before or are starting over
+        experiments = newExperiments;
+        Collections.sort(experiments, new Comparator<Experiment>() {
+
+          @Override
+          public int compare(Experiment lhs, Experiment rhs) {
+            return lhs.getTitle().toLowerCase().compareTo(rhs.getTitle().toLowerCase());
+          }
+
+        });
+        experimentCursor = newExperimentCursor;
+        saveExperimentsToDisk();
+      } else {
+        Map<Long, Experiment> existingAndNewExperimentsMap = Maps.newConcurrentMap();
+        for(Experiment existingExperiment : experiments) {
+          existingAndNewExperimentsMap.put(existingExperiment.getServerId(), existingExperiment);
+        }
+        for (Experiment experiment : newExperiments) {
+          existingAndNewExperimentsMap.put(experiment.getServerId(), experiment);
+        }
+        experiments = Lists.newArrayList(existingAndNewExperimentsMap.values());
+        Collections.sort(experiments, new Comparator<Experiment>() {
+
+          @Override
+          public int compare(Experiment lhs, Experiment rhs) {
+            return lhs.getTitle().toLowerCase().compareTo(rhs.getTitle().toLowerCase());
+          }
+
+        });
+        experimentCursor = newExperimentCursor;
+        saveExperimentsToDisk();
+      }
+      if (newExperiments.size() == 0 || newExperimentCursor == null) {
+        experimentCursor = null; // we have hit the end. The next refresh starts over
+        refreshButton.setText(getString(R.string.refresh_experiments_list_from_server));
+      } else {
+        refreshButton.setText(getString(R.string.load_more_experiments_from_server));
+      }
+      reloadAdapter();
+    } catch (JsonParseException e) {
+      showFailureDialog(DownloadHelper.CONTENT_ERROR);
+    } catch (JsonMappingException e) {
+      showFailureDialog(DownloadHelper.CONTENT_ERROR);
+    } catch (UnsupportedCharsetException e) {
+      showFailureDialog(DownloadHelper.CONTENT_ERROR);
+    } catch (IOException e) {
+      showFailureDialog(DownloadHelper.CONTENT_ERROR);
+    }
   }
 
-  private void saveDownloadedExperiments(String contentAsString) {
+  private void saveExperimentsToDisk() {
     try {
+      String contentAsString = experimentProviderUtil.getJson(experiments);
       experimentProviderUtil.saveExperimentsToDisk(contentAsString);
     } catch (JsonParseException e) {
       showFailureDialog(DownloadHelper.CONTENT_ERROR);
@@ -258,7 +320,10 @@ public class FindExperimentsActivity extends FragmentActivity {
 
   // Visible for testing
   public void reloadAdapter() {
-    experiments = experimentProviderUtil.loadExperimentsFromDisk(false);
+    if (experiments == null || experiments.isEmpty()) {
+      experiments = experimentProviderUtil.loadExperimentsFromDisk(false);
+    }
+
     adapter = new AvailableExperimentsListAdapter(FindExperimentsActivity.this,
                                                   R.id.find_experiments_list,
                                                   experiments);

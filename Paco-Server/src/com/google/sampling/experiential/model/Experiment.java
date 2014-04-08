@@ -60,6 +60,8 @@ import com.google.sampling.experiential.shared.TimeUtil;
 @PersistenceCapable(identityType = IdentityType.APPLICATION, detachable = "true")
 public class Experiment {
 
+  private static final long serialVersionUID = -1407635488794262589l;
+
   @PrimaryKey
   @Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)
   private Long id;
@@ -143,6 +145,9 @@ public class Experiment {
 
   @Persistent
   private Boolean showFeedback;
+
+  @Persistent
+  private Boolean hasCustomFeedback;
 
 
   /**
@@ -273,6 +278,12 @@ public class Experiment {
   public String getEndDate() {
     return getDateAsString(endDate, TimeUtil.DATE_FORMAT);
   }
+
+  @JsonIgnore
+  public Date getEndDateAsDate() {
+    return endDate;
+  }
+
 
   public void setEndDate(String endDateStr) {
       setFormattedEndDate(endDateStr);
@@ -426,8 +437,14 @@ public class Experiment {
   }
 
   @JsonIgnore
+  public boolean isPublic() {
+    return (getPublished() != null && getPublished() == true) &&
+            (getPublishedUsers() == null || getPublishedUsers().isEmpty());
+  }
+
+  @JsonIgnore
   private DateTime getEndDateTime() {
-    if (getSchedule().getScheduleType().equals(SignalScheduleDAO.WEEKDAY)) {
+    if (getSchedule() != null && getSchedule().getScheduleType().equals(SignalScheduleDAO.WEEKDAY)) {
       List<Long> times = schedule.getTimes();
       // get the latest time
       Collections.sort(times);
@@ -463,8 +480,12 @@ public class Experiment {
   @JsonIgnore
   public boolean isWhoAllowedToPostToExperiment(String who) {
     who = who.toLowerCase();
-    return getAdmins().contains(who) ||
+    return isAdmin(who) ||
       (getPublished() && (getPublishedUsers().isEmpty() || getPublishedUsers().contains(who)));
+  }
+
+  public boolean isAdmin(String who) {
+    return getAdmins().contains(who);
   }
 
   public Integer getVersion() {
@@ -497,11 +518,16 @@ public class Experiment {
   }
 
   public Boolean shouldShowFeedback() {
-    return showFeedback;
+ // default to showing feedback because that is the historical way.
+    return (showFeedback != null) ? showFeedback : Boolean.TRUE;
   }
 
   public void setShowFeedback(Boolean show) {
     this.showFeedback = show;
+  }
+
+  public Boolean hasCustomFeedback() {
+   return hasCustomFeedback;
   }
 
 

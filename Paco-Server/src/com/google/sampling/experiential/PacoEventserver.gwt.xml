@@ -44,6 +44,7 @@
 <extend-property name="locale" values="fi"/>
  <extend-property name="locale" values="ja"/>
   <extend-property name="locale" values="en"/>
+    <extend-property name="locale" values="pt"/>
 <set-property-fallback name="locale" value="en"/>
 
 <!-- <set-configuration-property name="locale.usemeta" value="N"/> -->
@@ -64,6 +65,7 @@
 <!--
 <script src="https://maps-api-ssl.google.com/maps/api/js?v=3&amp;sensor=false"></script>
 --> 
+
 
   <!-- Specify the app entry point class. -->
   <entry-point class='com.google.sampling.experiential.client.DispatchEntryPoint'/>

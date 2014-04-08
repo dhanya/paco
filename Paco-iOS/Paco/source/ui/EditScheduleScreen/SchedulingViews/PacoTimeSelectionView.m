@@ -15,7 +15,7 @@
 
 #import "PacoTimeSelectionView.h"
 
-#import "PacoColor.h"
+#import "UIColor+Paco.h"
 #import "PacoLayout.h"
 #import "PacoDateUtility.h"
 #import "PacoTableView.h"
@@ -40,7 +40,7 @@
 
 - (void)onAddTime {
   NSMutableArray *array = [NSMutableArray arrayWithArray:self.times];
-  [array addObject:[NSNumber numberWithLongLong:0]];
+  [array addObject:@0LL];
   self.times = array;
   [self.tableDelegate dataUpdated:self rowData:self.times reuseId:self.reuseId];
 }
@@ -57,10 +57,10 @@
 }
 
 - (void)onEdit:(UIButton *)button {
-  int timeIndex = [self.timeEditButtons indexOfObject:button];
+  NSUInteger timeIndex = [self.timeEditButtons indexOfObject:button];
   self.editIndex = timeIndex;
   assert(timeIndex != NSNotFound);
-  NSNumber *time = [self.times objectAtIndex:timeIndex];
+  NSNumber *time = (self.times)[timeIndex];
   [self.picker setTimeZone:[NSTimeZone timeZoneForSecondsFromGMT:0]];
   [self.picker setDate:[NSDate dateWithTimeIntervalSince1970:(time.longLongValue / 1000)]];
 
@@ -76,7 +76,7 @@
 - (void)onDateChange {
   if (_editIndex != NSNotFound) {
     NSMutableArray *timesArray = [NSMutableArray arrayWithArray:self.times];
-    [timesArray replaceObjectAtIndex:self.editIndex withObject:[NSNumber numberWithLongLong:(self.picker.date.timeIntervalSince1970 * 1000)]];
+    timesArray[self.editIndex] = [NSNumber numberWithLongLong:(self.picker.date.timeIntervalSince1970 * 1000)];
     self.times = timesArray;
     [self.tableDelegate dataUpdated:self rowData:self.times reuseId:self.reuseId];
   }
@@ -85,7 +85,7 @@
 - (void)finishTimeSelection {
   NSMutableArray *timesArray = [NSMutableArray arrayWithArray:self.times];
   if (_editIndex != NSNotFound) {
-    [timesArray replaceObjectAtIndex:self.editIndex withObject:[NSNumber numberWithLongLong:(self.picker.date.timeIntervalSince1970 * 1000)]];
+    timesArray[self.editIndex] = [NSNumber numberWithLongLong:(self.picker.date.timeIntervalSince1970 * 1000)];
     self.times = timesArray;
     PacoTableView *pacoTable = [self pacoTableView];
     pacoTable.footer = nil;
@@ -113,7 +113,7 @@
     [addButton setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
     [addButton setTitle:@"+" forState:UIControlStateHighlighted];
     [addButton setTitleColor:[UIColor blackColor] forState:UIControlStateHighlighted];
-    addButton.backgroundColor = [PacoColor pacoBlue];
+    addButton.backgroundColor = [UIColor pacoBlue];
     self.addButton = addButton;
     //disable the ability to add more times for now, we may need it in the future.
     //and a minus button is needed if we enable the add button
@@ -137,7 +137,7 @@
   [self.timePickers removeAllObjects];
 
   if ([self.times count] == 0) {
-    self.times = [NSArray arrayWithObject:[NSDate dateWithTimeIntervalSince1970:0]];
+    self.times = @[[NSDate dateWithTimeIntervalSince1970:0]];
     UIButton *button = [[UIButton alloc] initWithFrame:CGRectZero];
     [button setTitle:NSLocalizedString(@"Enter a time", nil) forState:UIControlStateNormal];
     [self addSubview:button];
@@ -148,7 +148,7 @@
   NSMutableArray *timeViews = [NSMutableArray array];
   for (NSNumber *time in self.times) {
     UIButton *button = [[UIButton alloc] initWithFrame:CGRectZero];
-    button.backgroundColor = [PacoColor pacoBlue];
+    button.backgroundColor = [UIColor pacoBlue];
     [button setTitle:[PacoDateUtility timeStringAMPMFromMilliseconds:[time longLongValue]]
             forState:UIControlStateNormal];
     [button setTitle:[PacoDateUtility timeString24hrFromMilliseconds:[time longLongValue]]
@@ -164,7 +164,7 @@
     [timeViews addObject:button];
 
     button = [[UIButton alloc] initWithFrame:CGRectZero];
-    button.backgroundColor = [PacoColor pacoBlue];
+    button.backgroundColor = [UIColor pacoBlue];
     [button setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
     [button setTitleColor:[UIColor blackColor] forState:UIControlStateHighlighted];
     [button setTitle:NSLocalizedString(@"Edit", nil) forState:UIControlStateNormal];
@@ -195,13 +195,13 @@
 }
 
 + (NSNumber *)heightForData:(id)data {
-  return [NSNumber numberWithInt:340];
+  return @340;
 }
 
 - (void)layoutSubviews {
   [super layoutSubviews];
 
-  self.backgroundColor = [PacoColor pacoBackgroundWhite];
+  self.backgroundColor = [UIColor pacoBackgroundWhite];
 
   CGRect labelFrame = [PacoLayout centerRect:self.label.frame.size inRect:CGRectMake(0, 10, self.frame.size.width, self.label.frame.size.height)];
   self.label.frame = labelFrame;

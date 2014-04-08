@@ -15,7 +15,7 @@
 
 #import "PacoSliderView.h"
 
-#import "PacoColor.h"
+#import "UIColor+Paco.h"
 #import "PacoFont.h"
 #import "PacoLayout.h"
 
@@ -34,7 +34,7 @@ NSString * const kStrPacoSliderChanged = @"kPacoNotificationSliderChanged";
 - (id)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier {
   self = [super initWithStyle:style reuseIdentifier:reuseIdentifier];
   if (self) {
-    self.backgroundColor = [PacoColor pacoBackgroundWhite];
+    self.backgroundColor = [UIColor pacoBackgroundWhite];
     self.valueLabel = [[UILabel alloc] initWithFrame:CGRectZero];
     self.valueLabel.text = NSLocalizedString(@"Value", nil);
     self.valueLabel.font = [PacoFont pacoTableCellFont];
@@ -45,10 +45,10 @@ NSString * const kStrPacoSliderChanged = @"kPacoNotificationSliderChanged";
     self.slider.minimumValue = 1.0;
     self.slider.maximumValue = 30.0;
     self.slider.continuous = NO;
-    self.slider.backgroundColor = [PacoColor pacoBackgroundWhite];
-    self.slider.minimumTrackTintColor = [PacoColor pacoDarkBlue];
-    self.slider.maximumTrackTintColor = [PacoColor pacoDarkBlue];
-    self.slider.thumbTintColor = [PacoColor pacoDarkBlue];
+    self.slider.backgroundColor = [UIColor pacoBackgroundWhite];
+    self.slider.minimumTrackTintColor = [UIColor pacoDarkBlue];
+    self.slider.maximumTrackTintColor = [UIColor pacoDarkBlue];
+    self.slider.thumbTintColor = [UIColor pacoDarkBlue];
     [self.slider setValue:1.0];
     [self.slider addTarget:self action:@selector(valueChanged:event:) forControlEvents:UIControlEventTouchUpInside|UIControlEventTouchDragInside];
 
@@ -93,13 +93,13 @@ NSString * const kStrPacoSliderChanged = @"kPacoNotificationSliderChanged";
 }
 
 + (NSNumber *)heightForData:(id)data {
-  return [NSNumber numberWithInt:kSliderViewHeight];
+  return @(kSliderViewHeight);
 }
 
 - (void)valueChanged:(UISlider *)sliderUI event:(UIEvent *)event {
   float fvalue = sliderUI.value;
   int ivalue = (int)fvalue;
-  self.value = [NSNumber numberWithInt:ivalue];
+  self.value = @(ivalue);
   self.valueLabel.text = [NSString stringWithFormat:_format, (int)sliderUI.value];
   [self.valueLabel sizeToFit];
   [self setNeedsLayout];

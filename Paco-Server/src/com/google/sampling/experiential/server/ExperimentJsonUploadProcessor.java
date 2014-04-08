@@ -8,6 +8,7 @@ import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion;
+import org.joda.time.DateTimeZone;
 import org.json.JSONException;
 
 import com.google.appengine.api.users.User;
@@ -31,13 +32,13 @@ public class ExperimentJsonUploadProcessor {
     return new ExperimentJsonUploadProcessor(ExperimentRetriever.getInstance());
   }
 
-  public String processJsonExperiments(String postBodyString, User userFromLogin, String appIdHeader, String pacoVersion) {
+  public String processJsonExperiments(String postBodyString, User userFromLogin, String appIdHeader, String pacoVersion, DateTimeZone timezone) {
     if (postBodyString.startsWith("[")) {
-      List<ExperimentDAO> experiments = JsonConverter.fromEntitiesJson(postBodyString);
-      return toJson(processDAOs(experiments, userFromLogin, appIdHeader, pacoVersion));
+      List<ExperimentDAO> experiments = JsonConverter.fromEntitiesJsonUpload(postBodyString);
+      return toJson(processDAOs(experiments, userFromLogin, appIdHeader, pacoVersion, timezone));
     } else {
       ExperimentDAO experiment = JsonConverter.fromSingleEntityJson(postBodyString);
-      return toJson(processSingleJsonObject(experiment, userFromLogin, appIdHeader, pacoVersion));
+      return toJson(processSingleJsonObject(experiment, userFromLogin, appIdHeader, pacoVersion, timezone));
     }
   }
 
@@ -59,23 +60,23 @@ public class ExperimentJsonUploadProcessor {
     }
   }
 
-  private List<Outcome> processSingleJsonObject(ExperimentDAO currentObject, User userFromLogin, String appIdHeader, String pacoVersionHeader) {
+  private List<Outcome> processSingleJsonObject(ExperimentDAO currentObject, User userFromLogin, String appIdHeader, String pacoVersionHeader, DateTimeZone timezone) {
     List<Outcome> results = Lists.newArrayList();
     try {
-      results.add(postObject(currentObject, 0, userFromLogin, appIdHeader, pacoVersionHeader));
+      results.add(postObject(currentObject, 0, userFromLogin, appIdHeader, pacoVersionHeader, timezone));
     } catch (Throwable e) {
       results.add(new Outcome(0, "Exception posting event: 0. "+ e.getMessage()));
     }
     return results;
   }
 
-  private List<Outcome> processDAOs(List<ExperimentDAO> experiments, User userFromLogin, String appIdHeader, String pacoVersionHeader) {
+  private List<Outcome> processDAOs(List<ExperimentDAO> experiments, User userFromLogin, String appIdHeader, String pacoVersionHeader, DateTimeZone timezone) {
     List<Outcome> results = Lists.newArrayList();
     ExperimentDAO currentObject = null;
     for (int i = 0; i < experiments.size(); i++) {
       try {
         currentObject = experiments.get(i);
-        results.add(postObject(currentObject, i, userFromLogin, appIdHeader, pacoVersionHeader));
+        results.add(postObject(currentObject, i, userFromLogin, appIdHeader, pacoVersionHeader, timezone));
       } catch (JSONException e) {
         results.add(new Outcome(i, "JSONException posting experiment: " + i + ". " + e.getMessage()));
       } catch (Throwable e) {
@@ -85,19 +86,25 @@ public class ExperimentJsonUploadProcessor {
     return results;
   }
 
-  private Outcome postObject(ExperimentDAO experimentDAO, int objectId, User userFromLogin, String appIdHeader, String pacoVersionHeader) throws Throwable {
+  private Outcome postObject(ExperimentDAO experimentDAO, int objectId, User userFromLogin, String appIdHeader, String pacoVersionHeader, DateTimeZone timezone) throws Throwable {
     Outcome outcome = new Outcome(objectId);
 
     Long id = experimentDAO.getId();
     log.info("Retrieving experimentId, experimentName for experiment posting: " + id + ", " + experimentDAO.getTitle());
-    Experiment experiment = experimentRetriever.getExperiment(id);
+    Experiment experiment = null;
+    if (id != null) {
+      experiment = experimentRetriever.getExperiment(id);
+    }
+    if (experiment == null) {
+      experimentDAO.setId(null);
+    }
 
-    if (!isUserAdminOfSystem() && experiment != null && !experiment.isWhoAllowedToPostToExperiment(userFromLogin.getEmail().toLowerCase())) {
+    if (!isUserAdminOfSystem() && experiment != null && !experiment.isAdmin(userFromLogin.getEmail().toLowerCase())) {
       outcome.setError("Existing experiment for this event: " + objectId + ". Not allowed to modify.");
       return outcome;
     }
 
-    if (!experimentRetriever.saveExperiment(experimentDAO, userFromLogin)) {
+    if (!experimentRetriever.saveExperiment(experimentDAO, userFromLogin, timezone.getID())) {
       outcome.setError("Could not save experiment: " + objectId +". ExperimentId: " + experimentDAO.getId()
                        + ". title: " + experimentDAO.getTitle());
     }
