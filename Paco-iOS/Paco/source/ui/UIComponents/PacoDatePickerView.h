@@ -13,24 +13,22 @@
  * limitations under the License.
  */
 
-#import <XCTest/XCTest.h>
+#import <UIKit/UIKit.h>
 
-@interface PacoSchedulerTests : XCTestCase
+@class PacoDatePickerView;
+@protocol PacoDatePickerDelegate <NSObject>
 
+@optional
+- (void)onDateChanged:(PacoDatePickerView *)datePickerView;
+- (void)saveDateEdit;
+- (void)cancelDateEdit;
 @end
 
-@implementation PacoSchedulerTests
+@interface PacoDatePickerView : UIView
+@property (nonatomic, weak) id<PacoDatePickerDelegate> delegate;
+@property (nonatomic, copy) NSString* title;
 
-- (void)setUp {
-  [super setUp];
-  // Put setup code here; it will be run once, before the first test case.
-}
-
-- (void)tearDown {
-  // Put teardown code here; it will be run once, after the last test case.
-  [super tearDown];
-}
-
-
-
+- (void)setDateNumber:(NSNumber*)dateNumber;
+- (NSNumber*)dateNumber;
+- (NSString*)dateString;
 @end
